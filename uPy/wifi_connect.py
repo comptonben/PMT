@@ -17,10 +17,10 @@ import reqst
 
 def station_connected(station: WLAN):
     print("Connected...Testing Access...")
-    [r, logger_errs] = reqst.get("http://www.example.com")
+    r = reqst.get("http://www.example.com")
     if r.status_code != 200:
         print("No Internet Access")
         station.disconnect()
     else:
         print("Internet Accessible")
-        return [r, logger_errs]
+        return r

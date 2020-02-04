@@ -18,7 +18,7 @@ from wifi_connect import *
 from machine import SDCard
 from uos import mount
 
-ap_blacklist = [b'xfinitywifi']
+ap_blacklist = [b'xfinitywifi', b'CableWiFi']
 
 # HELPFUL 
 
@@ -52,9 +52,10 @@ filepath_logger = "/sdcard/log.txt"
 #gps = GPS()
 
 
-
+connect = False
 while True:
     while not station.isconnected():
+        connect = False
         # @param nets: tuple of obj(ssid, bssid, channel, RSSI, authmode, hidden)
         nets = station.scan()
 
@@ -72,35 +73,37 @@ while True:
                 if station.isconnected():
                     # store ssid for logger
                     global ssid_conn 
-                    ssid_conn = str(onet[0],"utf-8")
+                    ssid_conn = str(onet[0],"utf-8").replace(" ", "_") + ".txt"
                     # test connection
                     global req, start, et
                     start = utime.ticks_us()
-                    [req, logger_errs] = station_connected(station)
+                    req = station_connected(station)
                     et = utime.ticks_diff(utime.ticks_us(), start)
                 else:
                     print("Unable to Connect") 
 
     while station.isconnected():
-        # GPSdata = gps.get_RMCdata()
-        # if not (GPSdata == {}):
-        #     data = ','.join(list(v for v in GPSdata.values()))
-        #     data = data + "\n"
-        #     with open(filepath, "a+") as file_ptr:
-        #         file_ptr.write(data)
-        #     successful_post = post_data(data)
-        if req.was_redirected == True:
+        GPSdata = gps.get_RMCdata()
+        if not (GPSdata == {}):
+            data = ','.join(list(v for v in GPSdata.values()))
+            data = data + "\n"
+            with open(filepath, "a+") as file_ptr:
+                file_ptr.write(data)
+            successful_post = post_data(data)
+        
+        if not connect:
             with open(ssid_conn, "a+") as file_ptr:
+                print(ssid_conn)
                 file_ptr.write(req.content)
-                file_ptr.close()
-                # not redirected but got internet connection
-        if req.status_code == 200:
-            with open(filepath_logger, "a+") as file_ptr:
-                file_ptr.write(ssid_conn+" | " + "Successful Connection"+" | " +et+"\n")
-                file_ptr.close()
-        # something went wrong
-        else:
-             with open(filepath_logger, "a+") as file_ptr:
-                file_ptr.write(ssid_conn+" | " + "BAD!!\n")
-                file_ptr.close()
+                    # not redirected but got internet connection
+            if req.status_code == 200:
+                connect = True
+                print("Connected Here")
+                with open(filepath_logger, "a+") as file_ptr:
+                    file_ptr.write(ssid_conn+" | " + str(req.was_redirected) +" | " +str(et)+"\n")
+            # something went wrong
+            else:
+                with open(filepath_logger, "a+") as file_ptr:
+                    file_ptr.write(ssid_conn+" | " + "BAD!!\n")
         utime.sleep(5)
+        print("I just slept")
